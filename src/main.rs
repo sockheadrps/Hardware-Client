@@ -277,7 +277,6 @@ impl eframe::App for MyApp {
                 ui.label("");
                 ui.label("CPU:");
                 ui.label(format!("{}", self.state.lock().unwrap().hw.cpu_type));
-
                 ui.end_row();
 
                 ui.horizontal(|ui| {
@@ -287,7 +286,7 @@ impl eframe::App for MyApp {
 
                 ui.label("");
                 ui.label("CPU Frequency:");
-                ui.label(format!("{}mHz", self.state.lock().unwrap().hw.cpu_freq));
+                ui.label(format!("{}MHz", self.state.lock().unwrap().hw.cpu_freq));
                 ui.end_row();
 
                 ui.label("");
@@ -299,14 +298,14 @@ impl eframe::App for MyApp {
                 ui.label("");
                 ui.label("");
                 ui.label("Ram Total:");
-                ui.label(format!("{}gb", self.state.lock().unwrap().hw.ram_total));
+                ui.label(format!("{}GB", self.state.lock().unwrap().hw.ram_total));
                 ui.end_row();
 
                 for d in self.state.lock().unwrap().hw.disks.iter() {
                     ui.label("");
                     ui.label("");
                     ui.label(format!("Space Available on: {:?}", d.disk_name));
-                    ui.label(format!("{}gb", d.disk_available));
+                    ui.label(format!("{}GB", d.disk_available));
                     ui.end_row();
                 }
 
