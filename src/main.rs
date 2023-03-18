@@ -277,7 +277,6 @@ impl eframe::App for MyApp {
                 ui.label("");
                 ui.label("CPU:");
                 ui.label(format!("{}", self.state.lock().unwrap().hw.cpu_type));
-
                 ui.end_row();
 
                 ui.horizontal(|ui| {
