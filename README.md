@@ -1,4 +1,4 @@
-![Alt Text](preview.jpg)
+![Alt Text](preview.JPG)
 
 ## _A websocket client written in Rust that communicates statistical data about the hardware of the host machine_
 
