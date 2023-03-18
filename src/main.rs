@@ -15,9 +15,8 @@ use std::thread;
 use std::sync::{Arc, Mutex};
 
 
-fn update_hardware(state_clone: Arc<Mutex<State>>) {
+fn update_hardware(state_clone: Arc<Mutex<State>>, mut sys: System) {
     loop {
-        let mut sys = System::new_all();
         sys.refresh_all();
         let hw = Hardware::new(&sys);
         let duration = 1000;
@@ -221,7 +220,8 @@ impl MyApp {
         state.lock().unwrap().ctx = Some(ctx.egui_ctx.clone());
         let state_clone = state.clone();
         std::thread::spawn(move || {
-            update_hardware(state_clone);
+            let sys = System::new_all();
+            update_hardware(state_clone, sys);
         });
 
         Self {
