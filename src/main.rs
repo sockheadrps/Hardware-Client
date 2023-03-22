@@ -40,7 +40,7 @@ struct State {
 
 
 impl State {
-    pub fn new(sys: System) -> Self {
+    pub fn new(sys: &System) -> Self {
         Self {
             duration: 0,
             ctx: None,
@@ -118,13 +118,13 @@ enum Event {
     Connect { client_type: String, client_name: String }, 
     #[serde(rename_all = "kebab-case")]
     Disconnect { client_type: String, client_name: String }, 
-    HardwareData(Hardware),
+    HardwareData{ client_type: String, client_name: String, data: Hardware },
     HardwareRequest,
     HardwareTerminate
 }
 
 
-fn websocket(server:Endpoint, handler:NodeHandler<Signal>, listener:Option<NodeListener<Signal>>) {
+fn websocket(server: Endpoint, handler: NodeHandler<Signal>, listener: Option<NodeListener<Signal>>, duration: u64) {
     thread::spawn(move || {
         let init_connect = Event::Connect { 
             client_type: "SERVICE".to_string(), 
@@ -163,9 +163,14 @@ fn websocket(server:Endpoint, handler:NodeHandler<Signal>, listener:Option<NodeL
                 Signal::SendData => {
                     sys.refresh_all();
                     let hw = Hardware::new(&sys);
+                    let payload = Event::HardwareData { 
+                        client_type: "SERVICE".to_string(), 
+                        client_name: "Server".to_string(),
+                        data: hw
+                    };
                     if clients != 0 {
-                        handler.signals().send_with_timer(Signal::SendData, Duration::from_secs(1));
-                        handler.network().send(server, serde_json::to_string(&Event::HardwareData(hw)).unwrap().as_bytes());
+                        handler.signals().send_with_timer(Signal::SendData, Duration::from_secs(duration));
+                        handler.network().send(server, serde_json::to_string(&payload).unwrap().as_bytes());
                     }
                 }
 
@@ -210,20 +215,19 @@ struct MyApp {
     width: f32,
     height: f32,
     state: Arc<Mutex<State>>, 
-    conn_success: Option<bool>
-
+    conn_success: Option<bool>,
 }
 
 impl MyApp {
     fn new(ctx: &CreationContext, width:f32, height:f32) -> Self {
         let (handler, listener) = node::split();
+        let sys = System::new_all();
 
-        let state = Arc::new(Mutex::new(State::new(System::new_all())));
+        let state = Arc::new(Mutex::new(State::new(&sys)));
         state.lock().unwrap().ctx = Some(ctx.egui_ctx.clone());
         let state_clone = state.clone();
 
         std::thread::spawn(move || {
-            let sys = System::new_all();
             update_hardware(state_clone, sys);
         });
 
@@ -236,7 +240,7 @@ impl MyApp {
             width,
             height,
             state,
-            conn_success: None
+            conn_success: None,
         }
     }
 
@@ -280,8 +284,10 @@ impl eframe::App for MyApp {
                 ui.end_row();
 
                 ui.horizontal(|ui| {
-                    let _ip_label = ui.label("Frequency (Seconds): ");
-                    ui.add(egui::Slider::new(&mut self.freq, 0..=120));
+                    let _ip_label = ui.label(format!("Frequency (Seconds): {}", self.freq));
+                    if !self.connected {
+                        ui.add(egui::Slider::new(&mut self.freq, 0..=120));
+                    }
                 });
 
                 ui.label("");
@@ -324,7 +330,7 @@ impl eframe::App for MyApp {
                             }
                         };
 
-                        websocket(server, self.handler.clone(), self.listener.take());
+                        websocket(server, self.handler.clone(), self.listener.take(), self.freq as u64);
                         self.connected = true;
                     }
                 } else {
